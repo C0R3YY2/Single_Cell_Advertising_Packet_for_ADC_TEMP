@@ -1,3 +1,43 @@
+/*package com.example.single_cell_advertising_packet_for_adc_temp_2
+
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.content.pm.PackageManager
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.single_cell_advertising_packet_for_adc_temp_2.ui.theme.Single_Cell_Advertising_Packet_for_ADC_TEMP_2Theme
+
+import android.bluetooth.le.ScanFilter ////////////////////
+import android.bluetooth.le.ScanSettings ////////////////////
+*/
+
 package com.example.single_cell_advertising_packet_for_adc_temp_2
 
 import android.Manifest
@@ -34,6 +74,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.single_cell_advertising_packet_for_adc_temp_2.ui.theme.Single_Cell_Advertising_Packet_for_ADC_TEMP_2Theme
 
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanSettings
+
 class MainActivity : ComponentActivity() {
 
     private val advertisingPackets = mutableStateListOf<String>()
@@ -66,7 +109,7 @@ class MainActivity : ComponentActivity() {
         // Convert to voltage (in volts)
         val voltageInVolts = adcValue / 1000.0 * (178.0 + 150.0) / (150.0)
         
-        return String.format("%.2fV", voltageInVolts)
+        return String.format("%.3fV", voltageInVolts)
     }
     
     private fun convertToTemperature(bytes: List<Byte>): String {
@@ -174,15 +217,38 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startScan() {
-        bluetoothAdapter?.bluetoothLeScanner?.startScan(scanCallback)
+        //bluetoothAdapter?.bluetoothLeScanner?.startScan(scanCallback)
+        val filter = ScanFilter.Builder()
+            .setDeviceAddress(targetAddress)
+            .build()
+
+        val settings = ScanSettings.Builder()
+            // Use BALANCED mode for consistent, long-term scanning without throttling.
+            .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+            //.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0)
+            .build()
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        bluetoothAdapter?.bluetoothLeScanner?.startScan(listOf(filter), settings, scanCallback)
     }
 
     private fun stopScan() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
     }
 
     override fun onDestroy() {
-        stopScan()
+        // Ensure the continuous scan is stopped when the app closes
+        if (arePermissionsGranted()) {
+            stopScan()
+        }
         super.onDestroy()
     }
 }
